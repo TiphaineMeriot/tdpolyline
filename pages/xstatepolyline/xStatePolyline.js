@@ -20,11 +20,53 @@ let polyline // La polyline en cours de construction;
 
 const polylineMachine = createMachine(
     {
-        /** @xstate-layout N4IgpgJg5mDOIC5gF8A0IB2B7CdGgAcsAbATwBkBLDMfEI2SgF0qwzoA9EBaANnVI9eAOgAM4iZMkB2ZGnokK1MMMoRitJAsYs2nRABYATAMQAOAIzCD0gJwXetgwGZezgw9ty5QA */
+        /** @xstate-layout N4IgpgJg5mDOIC5gF8A0IB2B7CdGgAcsAbATwBkBLDMfEI2SgF0qwzoA9EBaADgDoA7AE5RvQYICsARgBMAFkkA2XulI9p-AAyytvaVuGCle2bOkrkaeiQrUw-ShGK0kNxizadEAZmH9dLS05BXFJeR9ZNUReJQCRaXElKR8lWUFZKysgA */
         id: "polyLine",
         initial: "idle",
         states : {
             idle: {
+                on: {
+                    MOUSECLICK: {
+                        target: "drawing",
+                        actions: "createLine",
+                    },
+                },
+            }
+            ,
+            drawing: {
+                on: {
+                    MOUSEMOVE: {
+                        actions: "setLastPoint",
+                    },
+                    MOUSECLICK: [
+                        {
+                            guard: "pasPlein",
+                            actions: "addPoint",
+                        },
+                        {
+                            guard: "isFull",
+                            target: "idle",
+                        actions: ["addPoint","saveLine"]
+                        },
+                    ],
+                    BACKSPACE: [
+                        {
+                            guard: "plusDeDeuxPoints",
+                            actions: "removeLastPoint",
+                        },
+                    ],
+                    Enter: [
+                        {
+                            guard: "canSave",
+                            target: "idle",
+                            actions: "saveLine",
+                        },
+                    ],
+                    Escape: {
+                        target: "idle",
+                        actions: "abandon",
+                    },
+                },
             },
         },
     },
@@ -94,6 +136,13 @@ const polylineMachine = createMachine(
             plusDeDeuxPoints: (context, event) => {
                 // Deux coordonnées pour chaque point, plus le point provisoire
                 return polyline.points().length > 6;
+            },
+            canSave: (context, event) => {
+                const pointCount = polyline.points().length / 2;
+                return pointCount >= 2 && pointCount <= MAX_POINTS;
+            },
+            isFull: (context, event) => {
+                return polyline.points().length === MAX_POINTS * 2;
             },
         },
     }
